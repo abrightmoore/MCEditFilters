@@ -183,12 +183,14 @@ def web(level,box,options,R):
 	method = "web"
 	(method, (width, height, depth), (centreWidth, centreHeight, centreDepth)) = FuncStart(level,box,options,method)
 
+	# ISSUES: Draping / curving sections to be done. Real webs aren't straight lines. Use Bresenham?
+	
 	# Init
 	(blockID, blockData) = getBlockFromOptions(options, "Material:")
 	(stickID, stickData) = getBlockFromOptions(options, "Block Type to Replace:")
 	ERROR = options["Chance:"]
 
-	SPIDERSIZE = R.randint(4,32)
+	SPIDERSIZE = R.randint(8,16)
 	# Anchor the web to two sticks starting at these points
 	(stick1x1, stick1y1, stick1z1) = (R.randint(0,centreWidth), 0, R.randint(0,centreDepth) )
 	(stick2x1, stick2y1, stick2z1) = (R.randint(0,centreWidth), 0, R.randint(0,centreDepth) )
@@ -207,28 +209,82 @@ def web(level,box,options,R):
 	(x,y,z) = (ms1x,ms1y,ms1z) = ((ap1x+ap2x)/2,(ap1y+ap2y)/2,(ap1z+ap2z)/2)
 		# distance along stick1
 	(stick1slopex,stick1slopey,stick1slopez) = (ap1x-stick1x1,ap1y-stick1y1,ap1z-stick1z1)
-	spar1dist = R.random()/2
-	(x1,y1,z1) = (ap2x, ap2y, ap2z) = (stick1x1+spar1dist*stick1slopex,stick1y1+spar1dist*stick1slopey,stick1z1+spar1dist*stick1slopez)
+	spar1maxdist = sqrt(stick1slopex**2+stick1slopey**2+stick1slopez**2)
+	spar1dist = 0.0 #R.random()/2
+	(x1,y1,z1) = (ap3x, ap3y, ap3z) = (stick1x1+spar1dist*stick1slopex,stick1y1+spar1dist*stick1slopey,stick1z1+spar1dist*stick1slopez)
 	drawLine(level, (blockID, blockData), (x,y,z), (x1,y1,z1) )
 	
 	# Centre blob
+	(cowx, cowy, cowz) = ((ms1x+ap3x)/2,(ms1y+ap3y)/2,(ms1z+ap3z)/2) # Centre of web	
+
+	Q = []
+	# Spars & 	# Web spiral
+	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(stick1x1, stick1y1, stick1z1),(ap1x, ap1y, ap1z),(cowx, cowy, cowz)):
+		Q.append(P)
+	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(ap1x, ap1y, ap1z),(ap2x, ap2y, ap2z),(cowx, cowy, cowz)):
+		Q.append(P)
+	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(ap2x, ap2y, ap2z),(stick2x1, stick2y1, stick2z1),(cowx, cowy, cowz)):
+		Q.append(P)
+	drawLine(level, (blockID, blockData), (stick1x1, stick1y1, stick1z1), (stick2x1, stick2y1, stick2z1) )
+	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(stick2x1, stick2y1, stick2z1),(stick1x1, stick1y1, stick1z1),(cowx, cowy, cowz)):
+		Q.append(P)
+	# Now I have an array of points in space. Join them up!
+	R = []
+	for T in Q:
+		S = []
+		#print T
+		for i in xrange(0,len(T)):
+			if len(R) > i:
+				drawLine(level, (stickID, stickData), T[i], R[(i)%len(R)] )
+			#print T[i]
+			S.append(T[i])
+		R = S
+#		for (x,y,z) in S:
+#			R.append((x,y,z))
+#		print R
 	
-	# Remaining spars
-	keepGoing = True
-	count = 10000
-	while keepGoing == True and count > 0:
-		count = count -1 # Limit looping so we don't run forever
-		# Based on the spider's reach, build the spars from the centre outward.
-		# The plane of the web is defined by the 
-		
-		
-		
-	# Web spiral
-	
+
 	# Centre eat and mesh
 	
 	FuncEnd(level,box,options,method)	
 
+def drawWebSpars(level,box,material,gap,(p1x,p1y,p1z),(p2x,p2y,p2z),(cowx,cowy,cowz)):
+	(stick1slopex,stick1slopey,stick1slopez) = (p2x-p1x,p2y-p1y,p2z-p1z)
+	spar1maxdist = sqrt(stick1slopex**2+stick1slopey**2+stick1slopez**2)
+	spar1dist = 0.0 #R.random()/2
+	# Remaining spars
+	unit = 1.0/spar1maxdist
+	keepGoing = True
+	count = 0
+	Q = []
+	while keepGoing == True and count < 10000:
+		count = count +1 # Limit looping so we don't run forever
+		if count%10 == 0:
+			print count
+		# Based on the spider's reach, build the spars from the centre outward.
+		# Traverse Stick 1 at nominated intervals, draw to the middle: (ms1x,ms1y,ms1z)
+		spar1dist = spar1dist+gap*unit
+		P = []
+		if spar1dist <= 1:
+			(x1,y1,z1) = (p1x+spar1dist*stick1slopex,p1y+spar1dist*stick1slopey,p1z+spar1dist*stick1slopez)
+			drawLine(level, material, (x1,y1,z1), (cowx,cowy,cowz) )
+			(dx,dy,dz) = (x1-cowx,y1-cowy,z1-cowz)
+			d = sqrt(dx**2+dy**2+dz**2)
+			du = 1.0/d
+			ds = 0.0
+			kg = True
+			while kg == True:
+				ds = ds + gap*du # Try gap/3 for fun!
+				if ds <= 1.0:
+					P.append( (cowx+dx*ds,cowy+dy*ds,cowz+dz*ds) ) # add each point along the spar at the gap
+				else:
+					kg = False				
+			Q.append(P) # Add in the set of points for this strut
+		else:
+			keepGoing = False
+	
+	return Q
+	
 def getBlockFromOptions(options, block):
 	return (options[block].ID, options[block].blockData)
 
