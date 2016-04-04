@@ -219,14 +219,14 @@ def web(level,box,options,R):
 
 	Q = []
 	# Spars & 	# Web spiral
-	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(stick1x1, stick1y1, stick1z1),(ap1x, ap1y, ap1z),(cowx, cowy, cowz)):
+	for P in drawWebSpars(level,box,ERROR,(blockID, blockData),SPIDERSIZE,(stick1x1, stick1y1, stick1z1),(ap1x, ap1y, ap1z),(cowx, cowy, cowz)):
 		Q.append(P)
-	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(ap1x, ap1y, ap1z),(ap2x, ap2y, ap2z),(cowx, cowy, cowz)):
+	for P in drawWebSpars(level,box,ERROR,(blockID, blockData),SPIDERSIZE,(ap1x, ap1y, ap1z),(ap2x, ap2y, ap2z),(cowx, cowy, cowz)):
 		Q.append(P)
-	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(ap2x, ap2y, ap2z),(stick2x1, stick2y1, stick2z1),(cowx, cowy, cowz)):
+	for P in drawWebSpars(level,box,ERROR,(blockID, blockData),SPIDERSIZE,(ap2x, ap2y, ap2z),(stick2x1, stick2y1, stick2z1),(cowx, cowy, cowz)):
 		Q.append(P)
 	drawLine(level, (blockID, blockData), (stick1x1, stick1y1, stick1z1), (stick2x1, stick2y1, stick2z1) )
-	for P in drawWebSpars(level,box,(blockID, blockData),SPIDERSIZE,(stick2x1, stick2y1, stick2z1),(stick1x1, stick1y1, stick1z1),(cowx, cowy, cowz)):
+	for P in drawWebSpars(level,box,ERROR,(blockID, blockData),SPIDERSIZE,(stick2x1, stick2y1, stick2z1),(stick1x1, stick1y1, stick1z1),(cowx, cowy, cowz)):
 		Q.append(P)
 	# Now I have an array of points in space. Join them up!
 	R = []
@@ -248,7 +248,8 @@ def web(level,box,options,R):
 	
 	FuncEnd(level,box,options,method)	
 
-def drawWebSpars(level,box,material,gap,(p1x,p1y,p1z),(p2x,p2y,p2z),(cowx,cowy,cowz)):
+def drawWebSpars(level,box,ERROR,material,gap,(p1x,p1y,p1z),(p2x,p2y,p2z),(cowx,cowy,cowz)):
+
 	(stick1slopex,stick1slopey,stick1slopez) = (p2x-p1x,p2y-p1y,p2z-p1z)
 	spar1maxdist = sqrt(stick1slopex**2+stick1slopey**2+stick1slopez**2)
 	spar1dist = 0.0 #R.random()/2
@@ -257,6 +258,7 @@ def drawWebSpars(level,box,material,gap,(p1x,p1y,p1z),(p2x,p2y,p2z),(cowx,cowy,c
 	keepGoing = True
 	count = 0
 	Q = []
+
 	while keepGoing == True and count < 10000:
 		count = count +1 # Limit looping so we don't run forever
 		if count%10 == 0:
@@ -264,25 +266,28 @@ def drawWebSpars(level,box,material,gap,(p1x,p1y,p1z),(p2x,p2y,p2z),(cowx,cowy,c
 		# Based on the spider's reach, build the spars from the centre outward.
 		# Traverse Stick 1 at nominated intervals, draw to the middle: (ms1x,ms1y,ms1z)
 		spar1dist = spar1dist+gap*unit
+
 		P = []
 		if spar1dist <= 1:
-			(x1,y1,z1) = (p1x+spar1dist*stick1slopex,p1y+spar1dist*stick1slopey,p1z+spar1dist*stick1slopez)
-			drawLine(level, material, (x1,y1,z1), (cowx,cowy,cowz) )
-			(dx,dy,dz) = (x1-cowx,y1-cowy,z1-cowz)
-			d = sqrt(dx**2+dy**2+dz**2)
-			du = 1.0/d
-			ds = 0.0
-			kg = True
-			while kg == True:
-				ds = ds + gap*du # Try gap/3 for fun!
-				if ds <= 1.0:
-					P.append( (cowx+dx*ds,cowy+dy*ds,cowz+dz*ds) ) # add each point along the spar at the gap
-				else:
-					kg = False				
-			Q.append(P) # Add in the set of points for this strut
+			if randint(0,100) < ERROR:
+
+				(x1,y1,z1) = (p1x+spar1dist*stick1slopex,p1y+spar1dist*stick1slopey,p1z+spar1dist*stick1slopez)
+				drawLine(level, material, (x1,y1,z1), (cowx,cowy,cowz) )
+				(dx,dy,dz) = (x1-cowx,y1-cowy,z1-cowz)
+				d = sqrt(dx**2+dy**2+dz**2)
+				du = 1.0/d
+				ds = 0.0
+				kg = True
+				while kg == True:
+					ds = ds + gap*du # Try gap/3 for fun!
+					if ds <= 1.0:
+						P.append( (cowx+dx*ds,cowy+dy*ds,cowz+dz*ds) ) # add each point along the spar at the gap
+					else:
+						kg = False				
+				Q.append(P) # Add in the set of points for this strut
 		else:
 			keepGoing = False
-	
+
 	return Q
 	
 def getBlockFromOptions(options, block):
